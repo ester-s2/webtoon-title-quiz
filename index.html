@@ -1,0 +1,461 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{color-scheme:light}body{margin:0}[hidden]{display:none!important}</style>
+<title>클로드가 한 줄로 요약한 웹툰 제목 이름 맞히기</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=Noto+Sans+KR:wght@400;500;700&display=swap">
+<style>
+  /* Layout: one column of ink-outlined "comic panels" on a flat ground, like a webtoon scroll. */
+  :root {
+    --bg: #eef0f6;
+    --panel: #ffffff;
+    --ink: #151622;
+    --muted: #5b5e73;
+    --accent: #ffd21f;
+    --accent-ink: #151622;
+    --ok: #0b7a4b;
+    --ok-bg: #dcf5e8;
+    --bad: #b42335;
+    --bad-bg: #fde3e6;
+    --shadow: #151622;
+    --font-display: "Do Hyeon", "Noto Sans KR", "Apple SD Gothic Neo", sans-serif;
+    --font-body: "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0f1017; --panel: #1b1d2a; --ink: #eef0f8; --muted: #a2a6bd;
+      --ok: #5fdc9f; --ok-bg: #12382a; --bad: #ff8d9b; --bad-bg: #432029;
+      --shadow: #000000; color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0f1017; --panel: #1b1d2a; --ink: #eef0f8; --muted: #a2a6bd;
+    --ok: #5fdc9f; --ok-bg: #12382a; --bad: #ff8d9b; --bad-bg: #432029;
+    --shadow: #000000; color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg); color: var(--ink);
+    font-family: var(--font-body); font-size: 16px; line-height: 1.6;
+    padding-block: 28px 48px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    word-break: keep-all; overflow-wrap: break-word;
+  }
+  main { max-width: 640px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+  h1, h2 { font-family: var(--font-display); font-weight: 400; margin: 0; text-wrap: balance; line-height: 1.25; }
+  p { margin: 0; }
+
+  .panel {
+    background: var(--panel); border: 2px solid var(--ink); border-radius: 6px;
+    box-shadow: 5px 5px 0 var(--shadow); padding: 22px;
+  }
+  .eyebrow {
+    font-size: 13px; font-weight: 700; letter-spacing: .08em; color: var(--muted);
+  }
+
+  /* start */
+  .hero h1 { font-size: clamp(30px, 8vw, 42px); margin-top: 6px; }
+  .hero h1 mark { background: var(--accent); color: var(--accent-ink); padding: 0 .2em; }
+  .hero p.lead { margin-top: 14px; color: var(--muted); }
+  fieldset { border: 0; padding: 0; margin: 24px 0 0; min-width: 0; }
+  legend { font-weight: 700; padding: 0; margin-bottom: 10px; }
+  .counts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .counts input { position: absolute; opacity: 0; pointer-events: none; }
+  .counts label {
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+    border: 2px solid var(--ink); border-radius: 6px; padding: 12px 6px; cursor: pointer;
+    font-weight: 700; background: var(--panel);
+  }
+  .counts label b { font-family: var(--font-display); font-weight: 400; font-size: 30px; line-height: 1.1; }
+  .counts label span { font-size: 13px; color: var(--muted); }
+  .counts input:checked + label { background: var(--accent); color: var(--accent-ink); }
+  .counts input:checked + label span { color: var(--accent-ink); }
+  .counts input:focus-visible + label { outline: 3px solid var(--ink); outline-offset: 3px; }
+
+  button {
+    font: inherit; font-weight: 700; cursor: pointer; border-radius: 6px;
+    border: 2px solid var(--ink); background: var(--panel); color: var(--ink);
+    padding: 11px 18px; min-height: 46px;
+  }
+  button:focus-visible, a:focus-visible, input[type="text"]:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
+  button.primary { background: var(--accent); color: var(--accent-ink); box-shadow: 3px 3px 0 var(--shadow); }
+  button.primary:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--shadow); }
+  button.big { width: 100%; font-size: 18px; margin-top: 22px; min-height: 54px; }
+  .note { margin-top: 14px; font-size: 14px; color: var(--muted); }
+
+  /* quiz */
+  .top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+  .top .q { font-family: var(--font-display); font-size: 26px; }
+  .top .q small { font-size: 16px; color: var(--muted); font-family: var(--font-body); }
+  .top .score { font-size: 14px; color: var(--muted); font-weight: 500; }
+  .bar { height: 10px; border: 2px solid var(--ink); border-radius: 99px; overflow: hidden; margin-top: 8px; background: var(--panel); }
+  .bar i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .25s ease; }
+  .prompt { font-weight: 700; font-size: 14px; color: var(--muted); }
+  .bubble {
+    margin-top: 10px; font-size: clamp(18px, 4.6vw, 21px); line-height: 1.65; font-weight: 500;
+    border-left: 6px solid var(--accent); padding: 4px 0 4px 16px;
+  }
+  .answer-row { display: flex; flex-direction: column; gap: 10px; margin-top: 22px; }
+  input[type="text"] {
+    font: inherit; font-size: 18px; width: 100%; padding: 12px 14px; min-height: 52px;
+    border: 2px solid var(--ink); border-radius: 6px; background: var(--bg); color: var(--ink);
+  }
+  input[type="text"][readonly] { opacity: .85; }
+  .tools { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .tools .spacer { flex: 1; }
+  .tools button { padding: 8px 14px; min-height: 40px; font-size: 14px; }
+  .tools button.primary { padding: 10px 22px; font-size: 16px; min-height: 46px; }
+  .hint { font-family: var(--font-display); font-size: 22px; letter-spacing: .12em; color: var(--muted); min-height: 1.6em; }
+
+  .feedback { margin-top: 16px; border: 2px solid var(--ink); border-radius: 6px; padding: 14px 16px; }
+  .feedback.ok { background: var(--ok-bg); }
+  .feedback.bad { background: var(--bad-bg); }
+  .feedback .tag { font-weight: 700; font-size: 14px; }
+  .feedback.ok .tag { color: var(--ok); }
+  .feedback.bad .tag { color: var(--bad); }
+  .feedback .title { font-family: var(--font-display); font-size: 24px; margin-top: 2px; }
+  .feedback .mine { font-size: 14px; color: var(--muted); margin-top: 2px; }
+  .feedback a { display: inline-block; margin-top: 8px; font-size: 14px; font-weight: 700; color: var(--ink); }
+
+  /* result */
+  .big-score { font-family: var(--font-display); font-size: clamp(54px, 16vw, 84px); line-height: 1.1; margin-top: 4px; }
+  .big-score small { font-size: .4em; color: var(--muted); font-family: var(--font-body); font-weight: 500; }
+  .result-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+  .result-actions button { flex: 1 1 180px; }
+  ol.review { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+  ol.review li { display: grid; grid-template-columns: 2.2em 1fr auto; gap: 4px 10px; padding: 12px 0; border-top: 1.5px solid var(--ink); align-items: start; }
+  ol.review li:first-child { border-top: 0; padding-top: 0; }
+  ol.review .n { color: var(--muted); font-variant-numeric: tabular-nums; font-weight: 700; }
+  ol.review .t { min-width: 0; font-weight: 700; }
+  ol.review .t small { display: block; font-weight: 400; color: var(--muted); font-size: 14px; }
+  ol.review .pill { font-size: 12px; font-weight: 700; padding: 2px 9px; border-radius: 99px; border: 1.5px solid currentColor; white-space: nowrap; }
+  ol.review .pill.ok { color: var(--ok); background: var(--ok-bg); }
+  ol.review .pill.bad { color: var(--bad); background: var(--bad-bg); }
+  ol.review a { grid-column: 2 / -1; font-size: 13px; color: var(--muted); }
+  h2.section { font-size: 24px; margin-bottom: 14px; }
+
+  @media (prefers-reduced-motion: reduce) { .bar i { transition: none; } button.primary:active { transform: none; } }
+</style>
+
+</head>
+<body>
+<main>
+  <!-- START -->
+  <section id="start" class="panel hero">
+    <h1>클로드가 한 줄로 요약한<br><mark>웹툰 제목</mark> 이름 맞히기</h1>
+    <fieldset>
+      <legend>문제 수</legend>
+      <div class="counts">
+        <div><input type="radio" name="count" id="c10" value="10" checked><label for="c10"><b>10</b></label></div>
+        <div><input type="radio" name="count" id="c20" value="20"><label for="c20"><b>20</b></label></div>
+        <div><input type="radio" name="count" id="c30" value="30"><label for="c30"><b>30</b></label></div>
+      </div>
+    </fieldset>
+    <button id="startBtn" class="primary big" type="button">퀴즈 시작</button>
+  </section>
+
+  <!-- QUIZ -->
+  <section id="quiz" hidden>
+    <div class="panel">
+      <div class="top">
+        <div class="q"><span id="qNum">1</span> <small>/ <span id="qTotal">10</span></small></div>
+        <div class="score">맞힌 개수 <b id="qScore">0</b></div>
+      </div>
+      <div class="bar" role="progressbar" aria-label="진행도" aria-valuemin="0" aria-valuemax="100" id="bar"><i id="barFill"></i></div>
+
+      <p class="prompt" style="margin-top:22px">이 한 줄 요약은 어떤 웹툰일까요?</p>
+      <p class="bubble" id="summary"></p>
+
+      <form id="form" autocomplete="off">
+        <div class="answer-row">
+          <label for="ans" class="prompt">정답 입력</label>
+          <input type="text" id="ans" name="ans" placeholder="웹툰 제목을 입력하세요" enterkeyhint="done" autocapitalize="off" spellcheck="false">
+          <div class="hint" id="hint" aria-live="polite"></div>
+          <div class="tools">
+            <button type="button" id="hintBtn">초성 힌트</button>
+            <button type="button" id="passBtn">모르겠어요</button>
+            <span class="spacer"></span>
+            <button type="submit" id="mainBtn" class="primary">제출</button>
+          </div>
+        </div>
+      </form>
+
+      <div id="feedback" class="feedback" hidden aria-live="polite"></div>
+    </div>
+  </section>
+
+  <!-- RESULT -->
+  <section id="result" hidden>
+    <div class="panel">
+      <p class="eyebrow">결과</p>
+      <div class="big-score"><span id="rScore">0</span><small> / <span id="rTotal">10</span></small></div>
+      <p id="rMsg" style="margin-top:6px;color:var(--muted)"></p>
+      <div class="result-actions">
+        <button type="button" class="primary" id="againBtn">처음으로</button>
+        <button type="button" id="retryWrongBtn">틀린 문제만 다시</button>
+      </div>
+    </div>
+    <div class="panel">
+      <h2 class="section">문제별 정답</h2>
+      <ol class="review" id="review"></ol>
+    </div>
+  </section>
+</main>
+
+<script>
+(function () {
+  // t: 정답 표기 / a: 인정하는 답 / s: 한 줄 요약
+  var DATA = [
+    { t: "도굴왕", a: ["도굴왕"], s: "회귀한 도굴꾼이 미래 지식으로 신들의 무덤과 유물을 선점하는 강탈도 서슴지 않는 다크 히어로 먼치킨물", u: "1Rgkb2I_KDndMgT3ki14eQzN5aBlshDer7r_oc_K5ZbA" },
+    { t: "천하제일인의 소꿉친구", a: ["천하제일인의 소꿉친구"], s: "마인으로 죽은 주인공이 회귀해 전생에 악연이던 여인들과 이번 생엔 인연을 쌓는 회귀 무협", u: "1z26ZlrWzF79aRc1QGAYj-p81shsRIR9uHiQZ64uh_ug" },
+    { t: "템빨", a: ["템빨"], s: "불운한 빚쟁이 게임 폐인이 레전드리 직업(대장장이)으로 전직해 장비 빨로 최강이 되는 장인물", u: "1OHuA7ereYQ1XkO24Pf0YFYKecI9KGz2GVrMPed4BcOY" },
+    { t: "신마대제", a: ["신마대제"], s: "할아버지를 잃은 염사 소년이 복수를 위해 마도 무학을 익혀 무림 최강이 되는 정통 무협", u: "1RjXxQ8FXnXYgOX0KqZxpZfgoc0Oc8GzEbvKYp5azrG4" },
+    { t: "여자인 걸 왜 모르지?", a: ["여자인 걸 왜 모르지"], s: "특전사 출신 여형사가 살인 용의자 재벌 3세의 남자 비서로 위장 잠입해 벌이는 남장여자 로맨틱 코미디", u: "1-z7Dw9nNAUbWJnlwKdwLSOMnOAN2GCarWvihWbcYRiY" },
+    { t: "일격필살의 소드마스터", a: ["일격필살의 소드마스터"], s: "마나 1뿐인 200회차 고인물이 12성 신화급 스킬을 0.01초만 써서 일격에 끝내는 먼치킨 판타지", u: "1Yl8wT6EUAkMxV8UGZJE8lPp6ObBt2KyzQEiTOFz6jn4" },
+    { t: "유부녀 킬러", a: ["유부녀 킬러"], s: "워킹맘 부장이 사실은 범죄자를 처단하는 스나이퍼인 들키면 안 되는 사이다 이중생활 액션", u: "1eGl3brYsDbhfnAnmBWS_CxC8uZS1bMr-dbNZqiO6CWM" },
+    { t: "존버닥터", a: ["존버닥터", "존버 닥터"], s: "악명 높은 섬 보건지소에 발령된 공보의가 진상 환자와 시골 비리 속에서 버티는 생존기", u: "198_Tm9oI8Xp6aFAcHgBI-AtYjqqNpwDsETb6XdLZNUM" },
+    { t: "내일도 출근!", a: ["내일도 출근"], s: "연애 휴식기 직장인 지윤과 까칠한 상사 시우의 공감 100% 사내 연애 힐링물", u: "1i9sIxn-ruH_nzpLmcPr1ZXeQODPI_wA1vhlKAWgTv30" },
+    { t: "잊혀진 들판", a: ["잊혀진 들판"], s: "불륜으로 태어난 비운의 황녀와 감정 마비된 기사의 혐관·후회 로판 (상수리나무 아래 작가 신작)", u: "1iBKVIXp48wrwU0TUdHcuo1_fMs3HqNVxL2ypr-PDIGg" },
+    { t: "철혈검가 사냥개의 회귀", a: ["철혈검가 사냥개의 회귀"], s: "버림받고 처형당한 서자가 갓난아기로 되돌아가 비정한 아버지와 가문에 복수하며 미래 지식으로 강해지는 사이다 먼치킨 복수극" },
+    { t: "흑표 가문의 설표 아기님", a: ["흑표 가문의 설표 아기님"], s: "이능이 없다고 외가에서 학대받다 죽은 혼혈 소녀가 되살아나 아버지 쪽 일족의 사랑을 받으며 치유되는 수인 힐링 육아 로판" },
+    { t: "검술명가 막내아들", a: ["검술명가 막내아들"], s: "저주 탓에 집안의 수치로 쫓겨났던 둔재가 어린 시절로 돌아가 그림자 신과의 계약과 수호룡을 얻어 먼치킨으로 성장하는 정통 판타지" },
+    { t: "마론 후작", a: ["마론 후작"], s: "소설 속 악녀에게 빙의해 오염된 유배지에서 나무 요정과 정화·농사로 영지를 일구며 원한 품은 남주들과 얽히는 힐링 영지물 로판" },
+    { t: "검을 든 꽃", a: ["검을 든 꽃"], s: "마성 무기에 잠식돼 가족과 연인을 몰살한 영애가 열 자루 신기를 모아 과거로 돌아가 행복을 되찾으려는 화려한 능력녀 회귀 로판" },
+    { t: "아빠를 교체하는 법", a: ["아빠를 교체하는 법"], s: "게임 속 소모품 운명을 깨달은 소녀가 생존을 위해 암살단 수장이 될 남자를 새 보호자로 삼고 요리 솜씨로 가족을 만드는 생존 가족물" },
+    { t: "눈먼 공작과 약혼했다", a: ["눈먼 공작과 약혼했다"], s: "소설 속 엑스트라로 빙의한 전직 성우가 시력을 잃고 감각 과민에 시달리는 서부 영주의 불면을 목소리로 달래며 맺는 계약 연애 로코 로판" },
+    { t: "이번 생은 가주가 되겠습니다", a: ["이번 생은 가주가 되겠습니다"], s: "교통사고로 죽어 다른 세계의 서출 소녀로 다시 태어났다 어린 시절로 되돌아온 주인공이 미래 정보와 재력으로 명문 집안을 일으켜 수장 자리를 노리는 사이다 성장 로판" },
+    { t: "아기는 악당을 키운다", a: ["아기는 악당을 키운다"], s: "세 번 죽고 네 번째 삶을 사는 가짜 운명의 소녀가 망명 자금을 위해 제국 최악의 악인 집안에 입양됐다가 팔불출 가족의 사랑을 받는 역육아 힐링 로판" },
+    { t: "광마전기", a: ["광마전기"], s: "마의 기운에 감염돼 죽은 무림 맹주가 몰락한 세가 증손자의 몸에 깨어나 가족만을 챙기며 가문을 다시 일으키는 현실주의 빙의 무협" },
+    { t: "재벌 서자를 떠맡게 되었다", a: ["재벌 서자를 떠맡게 되었다"], s: "토사구팽 위기의 대기업 과장이 능력치 창을 얻어 총수가의 혼외 아들이 이끄는 스타트업을 일으키는 킹메이커 경영 현판물" },
+    { t: "데뷔 못 하면 죽는 병 걸림 (시즌3)", a: ["데뷔 못 하면 죽는 병 걸림", "데뷔 못 하면 죽는 병 걸림 시즌3"], s: "빙의한 아이돌이 공중파 음악방송 주간 1위를 놓치면 목숨을 잃는 시스템 속에서 팬심을 공략해 버티는 아이돌 빙의물" },
+    { t: "그래도, 라이언", a: ["그래도 라이언", "라이언"], s: "카카오프렌즈 대표 캐릭터가 섬나라 왕실 후계자였던 과거를 대사 없이 그려낸 그래픽노블풍 비주얼 웹툰" },
+    { t: "모시던 아가씨가 도련님이 되어버렸다", a: ["모시던 아가씨가 도련님이 되어버렸다"], s: "빙의한 시녀 앞에 평생을 함께하자며 나타난 남자가 알고 보니 여장으로 숨어 살던 공작가 차남이었던 연하남 로맨스 판타지" },
+    { t: "남주의 조카가 나를 너무 좋아한다", a: ["남주의 조카가 나를 너무 좋아한다"], s: "환생한 악역이 짝사랑하던 대공을 피해 시골살이를 하다 위기에 빠진 선황제의 아들을 거두며 벌어지는 육아 로판" },
+    { t: "마왕의 아이로 살아남는 법", a: ["마왕의 아이로 살아남는 법"], s: "천 번 회귀한 끝에 세상을 멸망시킨 원수의 딸 갓난쟁이로 다시 태어나, 딸바보가 된 원수와 부하들 틈에서 지내는 회귀 육아 로판" },
+    { t: "외과의사 엘리제", a: ["외과의사 엘리제"], s: "악녀 황후였다가 화형 후 현대의 천재 의대 교수로 환생, 다시 예비 황후 시절로 회귀해 전염병을 치료하며 주체적으로 사는 메디컬 로판" },
+    { t: "남편은 됐고 돈이나 벌렵니다", a: ["남편은 됐고 돈이나 벌렵니다"], s: "10년 유폐됐던 황녀가 패전 후 적국 야만인 왕자에게 정략결혼으로 보내져 독립 자금을 모으려 동업하는 유쾌한 사이다 로판" },
+    { t: "무림세가 천대받는 손녀 딸이 되었다", a: ["무림세가 천대받는 손녀 딸이 되었다"], s: "소설 속 무협 세계에 빙의한 주인공이 여섯 살로 회귀해 단전이 망가진 몸으로 부친을 구하고 가문의 총애를 얻는 성장 로판" },
+    { t: "천재 궁수의 스트리밍", a: ["천재 궁수의 스트리밍"], s: "사고로 선수 생활을 접은 양궁 유망주가 대기업에서 해고된 뒤 가상현실 게임 방송으로 뜨며 압도적 실력을 뽐내는 인방 먼치킨물" },
+    { t: "엄마가 계약결혼 했다", a: ["엄마가 계약결혼 했다"], s: "빈민가 소녀의 술주정뱅이 모친이 돌아온 뒤 황제와 형식뿐인 혼인을 맺으면서 벌어지는 아이 시점의 로판" },
+    { t: "군의관이 계약직 대공비를 너무 잘함", a: ["군의관이 계약직 대공비를 너무 잘함"], s: "회귀한 야전 의무장교 여주가 옛 상관이 낸 기간제 공작 부인 모집에 지원해 쌍둥이 조카를 돌보며 전우애 로맨스를 키운다" },
+    { t: "들쥐", a: ["들쥐"], s: "10년째 은둔한 전직 작가가 자신의 신분을 훔쳐 활동하는 가짜를 추적하는 정체성 스릴러" },
+    { t: "체육교사 김계란", a: ["체육교사 김계란"], s: "게임 고인물 여고생이 '빡빡이 아저씨'라 불리는 운동 담당 선생님을 만나 운동으로 고민을 푸는 학원 성장 코미디" },
+    { t: "남편은 분명 성기사였는데", a: ["남편은 분명 성기사였는데"], s: "전생엔 냉담하던 신을 모시는 기사 배우자가 회귀 후 밤마다 정화를 청하는 집착 로맨스" },
+    { t: "무한의 마법사", a: ["무한의 마법사"], s: "마구간에서 발견된 평민 소년이 신분의 벽을 넘어 마도를 익혀 대성하는 회귀·빙의 없는 정통 판타지" },
+    { t: "힘숨찐 어린이가 아빠를 찾습니다", a: ["힘숨찐 어린이가 아빠를 찾습니다"], s: "죽은 부친을 살리려 과거 세계로 돌아간 네 살 아기가 사령술을 각성해 자신을 알아보지 못하는 부친 곁에서 용병단과 지낸다" },
+    { t: "걸즈 밴드 크라이", a: ["걸즈 밴드 크라이"], s: "인기 일본 애니메이션 속 록 그룹 멤버들의 무대 밖 일상을 담은 옴니버스 웹툰" },
+    { t: "무협지 악녀인데 내가 제일 쎄!", a: ["무협지 악녀인데 내가 제일 쎄"], s: "강호를 배경으로 한 소설 속 최악의 여자 빌런으로 빙의해 영약 만년삼으로 최강자가 된 여주가 운명을 뒤집는 사이다 갱생기" },
+    { t: "후영먹살 (고립된 후작 영애는 먹고살고 싶어서)", a: ["후영먹살", "고립된 후작 영애는 먹고살고 싶어서"], s: "외딴 영지에 갇혀 굶어 죽을 운명을 안 귀족 영양이 씨감자 농사로 영지를 살리는 생존형 개그 로판" },
+    { t: "인소의 법칙", a: ["인소의 법칙"], s: "연재 로맨스 속 세계에 떨어진 여주 친구가 전형적인 클리셰를 꿰뚫으며 학교 최고 인기남 네 명과 얽히는 학원 로맨스 코미디" },
+    { t: "악녀 언니를 구하러 온 용감한 강아지입니다", a: ["악녀 언니를 구하러 온 용감한 강아지입니다"], s: "무지개다리를 건넌 반려견이 입양된 딸로 환생해 외로운 악당 가문의 큰딸을 지키는 힐링 육아물" },
+    { t: "여신들을 위하여 : 다프네를 위하여", a: ["여신들을 위하여 다프네를 위하여", "다프네를 위하여", "여신들을 위하여"], s: "사랑의 신이 쏜 화살로 사랑과 증오가 뒤바뀐 님프와 후회남 태양의 신이 엮이는 신화 로맨스" },
+    { t: "괴담에 떨어져도 출근을 해야 하는구나 (3부)", a: ["괴담에 떨어져도 출근을 해야 하는구나", "괴담에 떨어져도 출근을 해야 하는구나 3부"], s: "집에 돌아온 주인공이 악몽 속 기이한 이야기 세계로 들어가 백일몽 주식회사 남해지사에서 다시 눈을 뜨는 이야기" },
+    { t: "21세기 대군부인 in 왕립학교", a: ["21세기 대군부인 in 왕립학교", "21세기 대군부인", "대군부인 in 왕립학교"], s: "재벌가 서녀와 왕실 남자 주인공의 교복 시절을 다룬 드라마 프롤로그 이야기" },
+    { t: "병아리반 헌터는 효도 중!", a: ["병아리반 헌터는 효도 중"], s: "네 살 S급 각성자 아기가 최강 길드장을 보호자 삼아 치유하는 판타지 육아물" },
+    { t: "나 혼자 EX급 소환수", a: ["나 혼자 EX급 소환수"], s: "게임 랭킹 1위가 3년 뒤 현실이 된 세계에서 최상위 등급의 사역 생물을 키우는 먼치킨물" },
+    { t: "괴담에 떨어져도 출근을 해야 하는구나 (웹툰)", a: ["괴담에 떨어져도 출근을 해야 하는구나", "괴담에 떨어져도 출근을 해야 하는구나 웹툰"], s: "기이한 이야기 속 세계의 대기업 신입 사원으로 빙의한 오타쿠가 초고속 승진을 하며 귀환을 꿈꾸는 공포 코미디" },
+    { t: "망나니 PD 아이돌로 살아남기", a: ["망나니 PD 아이돌로 살아남기"], s: "악덕 방송 제작자가 인기 없는 K팝 그룹 멤버에 빙의해 팀을 1군으로 키우는 성장형 연예계물" },
+    { t: "검은머리 미군 대원수", a: ["검은머리 미군 대원수"], s: "한국 군인이 미국 한인 2세로 환생해 미래 지식으로 최고 계급에 오르는 대체역사물" }
+  ];
+  DATA.forEach(function (d, i) { d.id = i; });
+
+  var $ = function (id) { return document.getElementById(id); };
+  var els = {
+    start: $("start"), quiz: $("quiz"), result: $("result"),
+    qNum: $("qNum"), qTotal: $("qTotal"), qScore: $("qScore"), bar: $("bar"), barFill: $("barFill"),
+    summary: $("summary"), form: $("form"), ans: $("ans"), hint: $("hint"),
+    hintBtn: $("hintBtn"), passBtn: $("passBtn"), mainBtn: $("mainBtn"), feedback: $("feedback"),
+    rScore: $("rScore"), rTotal: $("rTotal"), rMsg: $("rMsg"), review: $("review")
+  };
+
+  var state = { order: [], i: 0, results: [], answered: false };
+
+  function norm(s) { return String(s).toLowerCase().replace(/[^\p{L}\p{N}]/gu, ""); }
+
+  function lev(a, b) {
+    var m = a.length, n = b.length, prev = [], cur = [], i, j;
+    for (j = 0; j <= n; j++) prev[j] = j;
+    for (i = 1; i <= m; i++) {
+      cur = [i];
+      for (j = 1; j <= n; j++) {
+        cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+      }
+      prev = cur;
+    }
+    return prev[n];
+  }
+
+  // 정확히 일치하면 "exact", 오타 범위면 "typo", 아니면 null
+  function judge(input, item) {
+    var x = norm(input);
+    if (!x) return null;
+    var best = null;
+    item.a.forEach(function (c) {
+      var y = norm(c);
+      if (x === y) { best = "exact"; return; }
+      var tol = y.length >= 14 ? 2 : y.length >= 6 ? 1 : 0;
+      if (best !== "exact" && tol && lev(x, y) <= tol) best = "typo";
+    });
+    return best;
+  }
+
+  var CHO = "ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ";
+  function choseong(s) {
+    return Array.from(s).map(function (ch) {
+      var c = ch.charCodeAt(0);
+      if (c >= 0xAC00 && c <= 0xD7A3) return CHO[Math.floor((c - 0xAC00) / 588)];
+      return ch;
+    }).join("");
+  }
+
+  function shuffle(arr) {
+    var a = arr.slice(), i, j, t;
+    for (i = a.length - 1; i > 0; i--) { j = Math.floor(Math.random() * (i + 1)); t = a[i]; a[i] = a[j]; a[j] = t; }
+    return a;
+  }
+
+  function show(name) {
+    ["start", "quiz", "result"].forEach(function (k) { els[k].hidden = k !== name; });
+    window.scrollTo(0, 0);
+  }
+
+  function begin(ids) {
+    state.order = shuffle(ids);
+    state.i = 0;
+    state.results = [];
+    els.qTotal.textContent = state.order.length;
+    show("quiz");
+    renderQuestion();
+  }
+
+  function score() { return state.results.filter(function (r) { return r.ok; }).length; }
+
+  function renderQuestion() {
+    var item = DATA[state.order[state.i]];
+    state.answered = false;
+    els.qNum.textContent = state.i + 1;
+    els.qScore.textContent = score();
+    var pct = Math.round((state.i / state.order.length) * 100);
+    els.barFill.style.width = pct + "%";
+    els.bar.setAttribute("aria-valuenow", pct);
+    els.summary.textContent = item.s;
+    els.ans.value = "";
+    els.ans.readOnly = false;
+    els.hint.textContent = "";
+    els.hintBtn.hidden = false;
+    els.passBtn.hidden = false;
+    els.mainBtn.textContent = "제출";
+    els.feedback.hidden = true;
+    els.feedback.className = "feedback";
+    els.feedback.textContent = "";
+    els.ans.focus();
+  }
+
+  function finishAnswer(item, ok, typed, how) {
+    state.answered = true;
+    state.results.push({ id: item.id, ok: ok, typed: typed });
+    els.qScore.textContent = score();
+    els.ans.readOnly = true;
+    els.hintBtn.hidden = true;
+    els.passBtn.hidden = true;
+
+    var fb = els.feedback;
+    fb.className = "feedback " + (ok ? "ok" : "bad");
+    fb.textContent = "";
+    var tag = document.createElement("div");
+    tag.className = "tag";
+    tag.textContent = ok ? (how === "typo" ? "정답 (오타는 봐드렸어요)" : "정답") : (typed ? "오답" : "패스");
+    var title = document.createElement("div");
+    title.className = "title";
+    title.textContent = item.t;
+    fb.appendChild(tag);
+    fb.appendChild(title);
+    if (!ok && typed) {
+      var mine = document.createElement("div");
+      mine.className = "mine";
+      mine.textContent = "내 답: " + typed;
+      fb.appendChild(mine);
+    }
+    fb.hidden = false;
+
+    els.mainBtn.textContent = state.i + 1 >= state.order.length ? "결과 보기" : "다음 문제";
+    els.mainBtn.focus();
+  }
+
+  function next() {
+    state.i += 1;
+    if (state.i >= state.order.length) { showResult(); } else { renderQuestion(); }
+  }
+
+  function showResult() {
+    var total = state.order.length, got = score();
+    els.rScore.textContent = got;
+    els.rTotal.textContent = total;
+    var r = got / total;
+    els.rMsg.textContent =
+      r === 1 ? "전부 맞혔어요. 만점입니다." :
+      r >= 0.8 ? "거의 다 맞혔어요." :
+      r >= 0.5 ? "절반 넘게 맞혔어요." :
+      "아직은 낯선 작품이 많네요. 틀린 문제만 다시 풀어 보세요.";
+    $("retryWrongBtn").hidden = got === total;
+
+    els.review.textContent = "";
+    state.results.forEach(function (res, idx) {
+      var item = DATA[res.id];
+      var li = document.createElement("li");
+      var n = document.createElement("span"); n.className = "n"; n.textContent = idx + 1;
+      var t = document.createElement("span"); t.className = "t"; t.textContent = item.t;
+      if (!res.ok && res.typed) {
+        var sm = document.createElement("small"); sm.textContent = "내 답: " + res.typed; t.appendChild(sm);
+      }
+      var pill = document.createElement("span");
+      pill.className = "pill " + (res.ok ? "ok" : "bad");
+      pill.textContent = res.ok ? "정답" : "오답";
+      li.appendChild(n); li.appendChild(t); li.appendChild(pill);
+      els.review.appendChild(li);
+    });
+    els.barFill.style.width = "100%";
+    show("result");
+  }
+
+  els.form.addEventListener("submit", function (e) {
+    e.preventDefault();
+    if (state.answered) { next(); return; }
+    var typed = els.ans.value.trim();
+    if (!typed) { els.ans.focus(); return; }
+    var item = DATA[state.order[state.i]];
+    var how = judge(typed, item);
+    finishAnswer(item, !!how, typed, how);
+  });
+
+  els.passBtn.addEventListener("click", function () {
+    if (state.answered) return;
+    finishAnswer(DATA[state.order[state.i]], false, "", null);
+  });
+
+  els.hintBtn.addEventListener("click", function () {
+    var item = DATA[state.order[state.i]];
+    els.hint.textContent = choseong(item.a[0]);
+    els.ans.focus();
+  });
+
+  $("startBtn").addEventListener("click", function () {
+    var n = parseInt(document.querySelector('input[name="count"]:checked').value, 10);
+    begin(shuffle(DATA.map(function (d) { return d.id; })).slice(0, n));
+  });
+  $("againBtn").addEventListener("click", function () { show("start"); });
+  $("retryWrongBtn").addEventListener("click", function () {
+    var ids = state.results.filter(function (r) { return !r.ok; }).map(function (r) { return r.id; });
+    if (ids.length) begin(ids);
+  });
+})();
+</script>
+</body>
+</html>
